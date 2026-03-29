@@ -4,19 +4,17 @@ import { View, Text, StyleSheet } from 'react-native';
 const PlayerPasses = ({ pases }) => {
   if (!pases || pases.length === 0) return null;
 
-  // Función para convertir números de Excel (como 44235) a fecha legible
-  const formatearFechaExcel = (fechaRaw) => {
-    if (!fechaRaw) return "S/D";
-    
-    // Si es un número (formato Excel)
-    if (!isNaN(fechaRaw) && typeof fechaRaw !== 'object') {
-      const fecha = new Date((fechaRaw - 25569) * 86400 * 1000);
-      return fecha.toLocaleDateString('es-AR');
-    }
-    
-    // Si ya es un string o fecha
-    return String(fechaRaw);
-  };
+ const formatearFechaExcel = (fechaRaw) => {
+  if (!fechaRaw) return "S/D";
+  
+  // Si es un número de Excel (ej: 44235)
+  if (!isNaN(fechaRaw) && typeof fechaRaw !== 'object') {
+    const fecha = new Date((fechaRaw - 25569) * 86400 * 1000);
+    return fecha.toLocaleDateString('es-AR');
+  }
+  
+  return String(fechaRaw);
+};
   
   // 2. Función de validación protegida contra errores de tipo
   const estaAlDia = (registro) => {
@@ -33,7 +31,7 @@ const PlayerPasses = ({ pases }) => {
     
     return tieneCertificado || tieneMontos;
   };
-  
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>HISTORIAL DE PASES</Text>
