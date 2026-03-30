@@ -10,8 +10,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [resultadoBusqueda, setResultadoBusqueda] = useState<any>(null);
   const [categoriasFinales, setCategoriasFinales] = useState<string[]>([]);
-
-  const realizarBusqueda = async () => {
+  
+ const realizarBusqueda = async () => {
     if (!dni) return Alert.alert("Error", "Ingresá un DNI");
     
     setLoading(true);
@@ -19,19 +19,19 @@ export default function HomeScreen() {
     setCategoriasFinales([]);
 
     try {
-      // 🔍 1. Buscamos en todas las colecciones (Pagos, Players, Pases)
-      const resultado = await buscarJugadorCompleto(dni);
+      // 🔍 Agregamos ': any' para que no chille por 'detalles'
+      const resultado: any = await buscarJugadorCompleto(dni);
       
       if (resultado && resultado.info) {
-        // 📅 2. Identificamos la fecha de nacimiento (puede venir como 'fechaNacimiento' o 'F. NAC' del Excel)
         const fechaNacRaw = resultado.info.fechaNacimiento || resultado.info["F. NAC"];
-        
-        // 📈 3. Calculamos categorías por edad (Lógica de Hockey)
         const catsPorEdad = calcularCategoriasHabilitadas(fechaNacRaw, sexo);
 
-        // 🧬 4. Combinamos las categorías por edad con las que ya trae el buscador (como 'DIV' del Excel)
-        // Usamos un Set para que no haya duplicados
-        const combinadas = Array.from(new Set([...catsPorEdad, ...resultado.categorias]));
+        // 🧬 Ahora 'detalles' no dará error porque 'resultado' es tipo 'any'
+        const divPadron = resultado.info?.DIV || "";
+        const divPagos = resultado.detalles?.data2024?.division || "";
+
+        const categoriasDeBaseDeDatos = [divPadron, divPagos].filter(c => Boolean(c));
+        const combinadas = Array.from(new Set([...catsPorEdad, ...categoriasDeBaseDeDatos]));
 
         setResultadoBusqueda(resultado);
         setCategoriasFinales(combinadas);

@@ -77,8 +77,12 @@ const PlayerCard = ({ player, pagos2024, pagos2025, categorias, pases }) => {
         ) : (
           <StatusBadge label="PENDIENTE FICHAJE 2025" type={pagos2025 ? "danger" : "default"} />
         )}
-
-      </View>
+        {pagos.esCD && (
+          <View style={{backgroundColor: '#ffd700', padding: 5, borderRadius: 5}}>
+            <Text style={{fontWeight: 'bold', color: '#000'}}>EXENTO - DIRIGENTE/CD</Text>
+          </View>
+        )}
+        </View>
 
       <View style={styles.separator} />
       
