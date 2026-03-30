@@ -22,6 +22,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro", // <--- AGREGAR ESTA LÍNEA
       "output": "static",
       "favicon": "./assets/images/ESCUDO ASH.jpeg"
     },
