@@ -13,6 +13,7 @@
     "@expo/metro-runtime": "~4.0.0",
     "expo": "~52.0.0",
     "expo-constants": "~17.0.3",
+    "expo-image": "~2.0.7",
     "expo-router": "~4.0.0",
     "expo-splash-screen": "~0.29.24",
     "expo-status-bar": "~2.0.0",
