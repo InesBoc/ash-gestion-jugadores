@@ -1,26 +1,14 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-import { View, Text } from 'react-native';
-
-
+import { View, Text, StyleSheet } from 'react-native';
 
 export default function TabTwoScreen() {
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Sección de Explorar (ASH)</Text>
+    <View style={styles.container}>
+      <Text style={styles.text}>Sección de Explorar (ASH)</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+  text: { fontSize: 16, fontWeight: 'bold' }
 });

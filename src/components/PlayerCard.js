@@ -6,90 +6,72 @@ import PlayerPasses from './PlayerPasses';
 const PlayerCard = ({ player, pagos2024, pagos2025, categorias, pases }) => {
   if (!player) return null;
 
-  // 1. Datos Personales (Priorizamos info de pagos, si no, usamos Padrón)
-  const info = pagos2025 || pagos2024 || player;
-  const nombreCompleto = info.apellido && info.nombre 
-    ? `${info.apellido}, ${info.nombre}` 
+  const infoNombre = pagos2025 || pagos2024 || player;
+  const nombreCompleto = infoNombre.apellido && infoNombre.nombre 
+    ? `${infoNombre.apellido}, ${infoNombre.nombre}` 
     : (player.apellidoNombre || player.jugador || "Sin Nombre");
 
-  // 2. Lógica para detectar Jugador Libre (Padrón ASH)
-  // Es libre si NO tiene registros en las colecciones de pagos de 2024 ni 2025
+  // El Club de Origen SIEMPRE del Padrón
+  const clubOriginal = player.club || "Sin Club";
   const esJugadorLibre = !pagos2024 && !pagos2025;
 
-  // 3. Lógica para detectar CD (Exento)
-  const esCD = String(pagos2024?.completo || "").toUpperCase() === "CD" || 
-               String(pagos2025?.completo || "").toUpperCase() === "CD";
-
-  // 4. Función de validación de estado de pago
-  const obtenerEstadoPago = (registro, anio) => {
-    if (esCD) return "AL DÍA (EXENTO)"; // Si es CD, ignoramos cualquier otra lógica de deuda
-    if (!registro) return esJugadorLibre ? "LIBRE (SIN ACTIVIDAD)" : `DEUDA ${anio}`;
+  const validarEstado = (registro) => {
+    if (!registro) return { alDia: false, esCD: false };
+    const completoStr = String(registro.completo || "").toUpperCase();
+    const fichajeStr = String(registro.primer_sem_fichaje || "").toUpperCase();
     
-    const valorTexto = String(registro.completo || "").toUpperCase().trim();
-    const tieneCertificado = valorTexto.replace(/-/g, "").length > 0;
-    const monto = parseFloat(registro.primer_sem_fichaje);
-    const tieneMontos = !isNaN(monto) && monto > 0;
+    // Busca "CD" en cualquier campo de pago relevante
+    const esMiembroCD = completoStr.includes("CD") || fichajeStr.includes("CD");
+    if (esMiembroCD) return { alDia: true, esCD: true };
 
-    return (tieneCertificado || tieneMontos) ? "AL DÍA" : `DEUDA ${anio}`;
+    const tieneCertificado = completoStr.replace(/-/g, "").trim().length > 0;
+    const monto = parseFloat(registro.primer_sem_fichaje);
+    return { alDia: tieneCertificado || (!isNaN(monto) && monto > 0), esCD: false };
   };
 
-  const estado2024 = obtenerEstadoPago(pagos2024, "2024");
-  const estado2025 = obtenerEstadoPago(pagos2025, "2025");
+  const estado24 = validarEstado(pagos2024);
+  const estado25 = validarEstado(pagos2025);
+  const esCDGlobal = estado24.esCD || estado25.esCD;
 
-  // Lógica de Clubes
-  const clubOriginal = info.club || "Sin Club";
   const ultimoPaseValido = pases?.find(p => p.estado === 'FINALIZADO' || p.estado === 'APROBADO');
   const clubActual = ultimoPaseValido ? ultimoPaseValido.club_destino : (player.club || "Sin Club");
 
   return (
     <View style={styles.card}>
       <Text style={styles.name}>{nombreCompleto.toUpperCase()}</Text>
-      <Text style={styles.detail}>DNI: {player.dni || info.dni || player.id}</Text>
+      <Text style={styles.detail}>DNI: {player.dni || player.id}</Text>
       <Text style={styles.detail}>Club de origen: {clubOriginal.toUpperCase()}</Text>
-
       <Text style={[styles.detail, {fontWeight: 'bold'}]}>
         Club Actual: <Text style={{color: '#f50909'}}>{clubActual.toUpperCase()}</Text>
       </Text>
 
       <View style={styles.badgeContainer}>
-        {/* Badge de Jugador Libre o Federado */}
-        {esJugadorLibre ? (
-          <StatusBadge label="JUGADOR LIBRE (ASH)" type="default" />
-        ) : (
-          <StatusBadge label="JUGADOR FEDERADO" type="success" />
-        )}
-
-        {/* Badge Especial CD (Solo si aplica) */}
-        {esCD && (
+        <StatusBadge 
+          label={esJugadorLibre ? "JUGADOR LIBRE (ASH)" : "JUGADOR FEDERADO"} 
+          type={esJugadorLibre ? "default" : "success"} 
+        />
+        {esCDGlobal && (
           <View style={styles.badgeCD}>
             <Text style={styles.textCD}>⭐ MIEMBRO CD - EXENTO</Text>
           </View>
         )}
-
-        {/* Estado 2024 - Si es CD o está al día sale verde, sino rojo */}
         <StatusBadge 
-          label={estado2024} 
-          type={estado2024.includes("AL DÍA") ? "success" : "danger"} 
+          label={estado24.alDia ? "2024 AL DÍA" : (esJugadorLibre ? "SIN REGISTRO" : "DEUDA 2024")} 
+          type={estado24.alDia ? "success" : (esJugadorLibre ? "default" : "danger")} 
         />
-
-        {/* Estado 2025 */}
         <StatusBadge 
-          label={estado2025} 
-          type={estado2025.includes("AL DÍA") ? "success" : (esJugadorLibre ? "default" : "danger")} 
+          label={estado25.alDia ? "2025 AL DÍA" : (esJugadorLibre ? "SIN REGISTRO" : "DEUDA 2025")} 
+          type={estado25.alDia ? "success" : (esJugadorLibre ? "default" : "danger")} 
         />
       </View>
 
       <View style={styles.separator} />
-      
       <Text style={styles.sectionTitle}>Categorías Habilitadas:</Text>
-      {categorias && categorias.length > 0 ? (
-        categorias.map((cat, i) => (
-          <Text key={i} style={styles.catText}>• {cat}</Text>
-        ))
+      {categorias?.length > 0 ? (
+        categorias.map((cat, i) => <Text key={i} style={styles.catText}>• {cat}</Text>)
       ) : (
         <Text style={styles.catText}>• Sin categorías asignadas</Text>
       )}
-      
       <PlayerPasses pases={pases} />
     </View>
   );
