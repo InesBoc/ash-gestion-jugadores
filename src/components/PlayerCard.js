@@ -6,17 +6,22 @@ import PlayerPasses from './PlayerPasses';
 const PlayerCard = ({ player, padron, pagos2024, pagos2025, categorias, pases }) => {
   if (!player) return null;
 
-  // EL CLUB DE ORIGEN sale SIEMPRE del padrón oficial (master)
-  // Si no está en el padrón, recién ahí busca en el registro actual
-  const clubDeOrigenOficial = padron?.club || padron?.Club || player?.club || "Sin Club";
+  // --- SOLUCIÓN DEFINITIVA CLUB DE ORIGEN ---
+  // Buscamos en todas las variantes posibles del padrón (master)
+  const clubDeOrigenOficial = 
+    padron?.club || 
+    padron?.Club || 
+    padron?.CLUB || 
+    player?.club || 
+    player?.Club || 
+    "Sin Club";
 
-  // Datos para el Nombre (Prioridad pagos)
-  const infoNombre = pagos2025 || pagos2024 || padron || player;
+  // Datos para el Nombre (Prioridad padrón para evitar nombres cortados en pagos)
+  const infoNombre = padron || player || pagos2025 || pagos2024;
   const nombreCompleto = infoNombre.apellido && infoNombre.nombre 
     ? `${infoNombre.apellido}, ${infoNombre.nombre}` 
-    : (infoNombre.apellidoNombre || infoNombre.jugador || "Sin Nombre");
+    : (infoNombre.apellidoNombre || infoNombre.jugador || infoNombre.jugadora || "Sin Nombre");
 
-  // Es Libre si NO hay registros de pagos en 2024 ni 2025
   const esJugadorLibre = !pagos2024 && !pagos2025;
 
   const validarEstado = (registro) => {
@@ -24,11 +29,11 @@ const PlayerCard = ({ player, padron, pagos2024, pagos2025, categorias, pases })
     const completoStr = String(registro.completo || "").toUpperCase().trim();
     const fichajeStr = String(registro.primer_sem_fichaje || "").toUpperCase().trim();
     
-    // Verificación de CD (Comisión Directiva)
+    // Si contiene "CD" en cualquier parte, es exento
     const esMiembroCD = completoStr.includes("CD") || fichajeStr.includes("CD");
     if (esMiembroCD) return { alDia: true, esCD: true };
 
-    const tieneCertificado = completoStr !== "" && completoStr !== "-------";
+    const tieneCertificado = completoStr !== "" && completoStr !== "-------" && completoStr !== "----";
     const monto = parseFloat(registro.primer_sem_fichaje);
     const tieneMontos = !isNaN(monto) && monto > 0;
     
@@ -39,21 +44,21 @@ const PlayerCard = ({ player, padron, pagos2024, pagos2025, categorias, pases })
   const estado25 = validarEstado(pagos2025);
   const esCDGlobal = estado24.esCD || estado25.esCD;
 
-  // Club Actual: Último pase aprobado, sino el club de origen
   const ultimoPaseValido = pases?.find(p => p.estado === 'FINALIZADO' || p.estado === 'APROBADO');
   const clubActual = ultimoPaseValido ? ultimoPaseValido.club_destino : clubDeOrigenOficial;
 
   return (
     <View style={styles.card}>
       <Text style={styles.name}>{nombreCompleto.toUpperCase()}</Text>
-      <Text style={styles.detail}>DNI: {player.dni || player.id || padron?.dni}</Text>
+      <Text style={styles.detail}>DNI: {padron?.dni || player?.dni || player?.id}</Text>
       
-      {/* AHORA SÍ: Club de origen blindado */}
       <Text style={styles.detail}>Club de origen: {clubDeOrigenOficial.toUpperCase()}</Text>
       
       <Text style={[styles.detail, {fontWeight: 'bold'}]}>
         Club Actual: <Text style={{color: '#f50909'}}>{clubActual.toUpperCase()}</Text>
       </Text>
+      
+      {/* ... Resto del componente (Badges, etc) igual ... */}
       
       {/* El resto de los StatusBadges igual... */}
       

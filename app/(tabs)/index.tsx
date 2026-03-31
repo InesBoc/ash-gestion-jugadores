@@ -11,40 +11,40 @@ export default function HomeScreen() {
   const [resultadoBusqueda, setResultadoBusqueda] = useState<any>(null);
   const [categoriasFinales, setCategoriasFinales] = useState<string[]>([]);
   
- const realizarBusqueda = async () => {
-    if (!dni) return Alert.alert("Error", "Ingresá un DNI");
+const realizarBusqueda = async () => {
+  if (!dni) return Alert.alert("Error", "Ingresá un DNI");
+  
+  setLoading(true);
+  setResultadoBusqueda(null);
+  setCategoriasFinales([]);
+
+  try {
+    const resultado: any = await buscarJugadorCompleto(dni);
     
-    setLoading(true);
-    setResultadoBusqueda(null);
-    setCategoriasFinales([]);
+    if (resultado && resultado.info) {
+      const fechaNacRaw = resultado.info.fechaNacimiento || resultado.info["F. NAC"] || resultado.padron?.["F. NAC"];
+      const catsPorEdad = calcularCategoriasHabilitadas(fechaNacRaw, sexo);
 
-    try {
-      // 🔍 Agregamos ': any' para que no chille por 'detalles'
-      const resultado: any = await buscarJugadorCompleto(dni);
-      
-      if (resultado && resultado.info) {
-        const fechaNacRaw = resultado.info.fechaNacimiento || resultado.info["F. NAC"];
-        const catsPorEdad = calcularCategoriasHabilitadas(fechaNacRaw, sexo);
+      // --- CORRECCIÓN AQUÍ ---
+      // Accedemos a la división directamente desde pagos2024 que devuelve el service
+      const divPadron = resultado.padron?.DIV || resultado.info?.DIV || "";
+      const divPagos = resultado.pagos2024?.division || ""; 
 
-        // 🧬 Ahora 'detalles' no dará error porque 'resultado' es tipo 'any'
-        const divPadron = resultado.info?.DIV || "";
-        const divPagos = resultado.detalles?.data2024?.division || "";
+      const categoriasDeBaseDeDatos = [divPadron, divPagos].filter(c => Boolean(c));
+      const combinadas = Array.from(new Set([...catsPorEdad, ...categoriasDeBaseDeDatos]));
 
-        const categoriasDeBaseDeDatos = [divPadron, divPagos].filter(c => Boolean(c));
-        const combinadas = Array.from(new Set([...catsPorEdad, ...categoriasDeBaseDeDatos]));
-
-        setResultadoBusqueda(resultado);
-        setCategoriasFinales(combinadas);
-      } else {
-        Alert.alert("Atención", "El DNI no figura en el padrón de la ASH.");
-      }
-    } catch (error: any) {
-      console.error("Error en búsqueda:", error);
-      Alert.alert("Error", "Problema al consultar la base de datos.");
-    } finally {
-      setLoading(false);
+      setResultadoBusqueda(resultado);
+      setCategoriasFinales(combinadas);
+    } else {
+      Alert.alert("Atención", "El DNI no figura en el padrón de la ASH.");
     }
-  };
+  } catch (error: any) {
+    console.error("Error en búsqueda:", error);
+    Alert.alert("Error", "Problema al consultar la base de datos.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
