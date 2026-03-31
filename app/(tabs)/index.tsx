@@ -92,13 +92,14 @@ export default function HomeScreen() {
 
       {/* 🃏 RENDERIZADO DE LA TARJETA */}
       {resultadoBusqueda && resultadoBusqueda.info && (
-        <PlayerCard 
-          player={resultadoBusqueda.info}
-          pagos2024={resultadoBusqueda.pagos2024}
-          pagos2025={resultadoBusqueda.pagos2025}
-          pases={resultadoBusqueda.pases} 
-          categorias={categoriasFinales} 
-        />
+       <PlayerCard 
+        player={resultadoBusqueda.info}
+        padron={resultadoBusqueda.padron} // <--- NUEVA PROP
+        pagos2024={resultadoBusqueda.pagos2024}
+        pagos2025={resultadoBusqueda.pagos2025}
+        pases={resultadoBusqueda.pases} 
+        categorias={categoriasFinales} 
+      />
       )}
     </ScrollView>
   );

@@ -26,39 +26,35 @@ export const buscarJugadorCompleto = async (dniUsuario: string | number) => {
       return anioB - anioA;
     });
 
-    // 4. Determinar Info Final (Prioridad de datos)
+  // 4. Determinar Info Final (NUEVA PRIORIDAD PARA JUGADORES LIBRES)
     let infoFinal: any = null;
+    let padronOriginal: any = null;
+
+    // Guardamos SIEMPRE los datos del padrón si existen para el Club de Origen
+    if (snapMaster.exists()) {
+      padronOriginal = snapMaster.data();
+    }
     
+    // Prioridad para mostrar Nombres/Apellidos en la tarjeta
     if (snap2025.exists()) {
       infoFinal = snap2025.data();
-    } else if (listaPases.length > 0) {
-      // Si no hay pagos 2025, tomamos los datos del pase más reciente
-      infoFinal = listaPases[0];
-    } else if (snapMaster.exists()) {
-      infoFinal = snapMaster.data();
     } else if (snap2024.exists()) {
       infoFinal = snap2024.data();
+    } else if (listaPases.length > 0) {
+      infoFinal = listaPases[0];
+    } else if (padronOriginal) {
+      infoFinal = padronOriginal; // <--- ESTO permite que aparezcan los LIBRES
     }
 
+    // Si no está en ninguna colección, recién ahí es null
     if (!infoFinal) return null;
-
-    // 5. Procesar Categorías (DIV en el Excel de pases)
-    let cats: string[] = [];
-    const rawCats = infoFinal["categorias"] || infoFinal["DIV"] || infoFinal["division"];
-    
-    if (Array.isArray(rawCats)) {
-      cats = rawCats;
-    } else if (rawCats) {
-      // Forzamos a string para evitar errores si DIV es un número (ej: "1")
-      cats = [String(rawCats)];
-    }
 
     return {
       info: infoFinal,
+      padron: padronOriginal, // <--- MANDAMOS EL PADRÓN APARTE
       pagos2024: snap2024.exists() ? snap2024.data() : null,
       pagos2025: snap2025.exists() ? snap2025.data() : null,
-      pases: listaPases,
-      categorias: cats
+      pases: listaPases
     };
 
   } catch (error) {
