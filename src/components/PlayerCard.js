@@ -6,13 +6,17 @@ import PlayerPasses from './PlayerPasses';
 const PlayerCard = ({ player, pagos2024, pagos2025, categorias, pases }) => {
   if (!player) return null;
 
+  // --- SOLUCIÓN CLUB DE ORIGEN ---
+
+  const clubDelPadron = player.club || player.Club || "Sin Club";
+
+  // 1. Datos Personales (Solo para Nombre y Apellido)
   const infoNombre = pagos2025 || pagos2024 || player;
   const nombreCompleto = infoNombre.apellido && infoNombre.nombre 
     ? `${infoNombre.apellido}, ${infoNombre.nombre}` 
     : (player.apellidoNombre || player.jugador || "Sin Nombre");
 
-  // El Club de Origen SIEMPRE del Padrón
-  const clubOriginal = player.club || "Sin Club";
+  // 2. Lógica para Jugadores Libres y CD
   const esJugadorLibre = !pagos2024 && !pagos2025;
 
   const validarEstado = (registro) => {
@@ -20,7 +24,6 @@ const PlayerCard = ({ player, pagos2024, pagos2025, categorias, pases }) => {
     const completoStr = String(registro.completo || "").toUpperCase();
     const fichajeStr = String(registro.primer_sem_fichaje || "").toUpperCase();
     
-    // Busca "CD" en cualquier campo de pago relevante
     const esMiembroCD = completoStr.includes("CD") || fichajeStr.includes("CD");
     if (esMiembroCD) return { alDia: true, esCD: true };
 
@@ -33,18 +36,22 @@ const PlayerCard = ({ player, pagos2024, pagos2025, categorias, pases }) => {
   const estado25 = validarEstado(pagos2025);
   const esCDGlobal = estado24.esCD || estado25.esCD;
 
+  // 3. Lógica de Club Actual (Pases)
   const ultimoPaseValido = pases?.find(p => p.estado === 'FINALIZADO' || p.estado === 'APROBADO');
-  const clubActual = ultimoPaseValido ? ultimoPaseValido.club_destino : (player.club || "Sin Club");
+  const clubActual = ultimoPaseValido ? ultimoPaseValido.club_destino : clubDelPadron;
 
   return (
     <View style={styles.card}>
       <Text style={styles.name}>{nombreCompleto.toUpperCase()}</Text>
       <Text style={styles.detail}>DNI: {player.dni || player.id}</Text>
-      <Text style={styles.detail}>Club de origen: {clubOriginal.toUpperCase()}</Text>
+      
+      {/* USAMOS LA VARIABLE BLINDADA AQUÍ */}
+      <Text style={styles.detail}>Club de origen: {clubDelPadron.toUpperCase()}</Text>
+      
       <Text style={[styles.detail, {fontWeight: 'bold'}]}>
         Club Actual: <Text style={{color: '#f50909'}}>{clubActual.toUpperCase()}</Text>
       </Text>
-
+      
       <View style={styles.badgeContainer}>
         <StatusBadge 
           label={esJugadorLibre ? "JUGADOR LIBRE (ASH)" : "JUGADOR FEDERADO"} 
