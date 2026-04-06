@@ -16,18 +16,18 @@ const realizarBusqueda = async () => {
   
   setLoading(true);
   setResultadoBusqueda(null);
-  setCategoriasFinales([]);
+  console.log("🔎 Intentando buscar DNI:", dni); // RASTREADOR 1
 
   try {
     const resultado: any = await buscarJugadorCompleto(dni);
+    console.log("✅ Respuesta del Service:", resultado); // RASTREADOR 2
     
     if (resultado && resultado.info) {
-      const fechaNacRaw = resultado.info.fechaNacimiento || resultado.info["F. NAC"] || resultado.padron?.["F. NAC"];
+      // Usamos info directamente para evitar errores de referencia
+      const fechaNacRaw = resultado.info.fechaNacimiento || resultado.info["F. NAC"];
       const catsPorEdad = calcularCategoriasHabilitadas(fechaNacRaw, sexo);
 
-      // --- CORRECCIÓN AQUÍ ---
-      // Accedemos a la división directamente desde pagos2024 que devuelve el service
-      const divPadron = resultado.padron?.DIV || resultado.info?.DIV || "";
+      const divPadron = resultado.info?.DIV || resultado.info?.division || "";
       const divPagos = resultado.pagos2024?.division || ""; 
 
       const categoriasDeBaseDeDatos = [divPadron, divPagos].filter(c => Boolean(c));
@@ -35,12 +35,14 @@ const realizarBusqueda = async () => {
 
       setResultadoBusqueda(resultado);
       setCategoriasFinales(combinadas);
+      console.log("🎯 Tarjeta lista para mostrar"); // RASTREADOR 3
     } else {
+      console.log("❌ Jugador no encontrado en la DB");
       Alert.alert("Atención", "El DNI no figura en el padrón de la ASH.");
     }
   } catch (error: any) {
-    console.error("Error en búsqueda:", error);
-    Alert.alert("Error", "Problema al consultar la base de datos.");
+    console.error("🔥 ERROR CRÍTICO:", error); // RASTREADOR 4
+    Alert.alert("Error", "Fallo en la conexión: " + error.message);
   } finally {
     setLoading(false);
   }
@@ -92,14 +94,13 @@ const realizarBusqueda = async () => {
 
       {/* 🃏 RENDERIZADO DE LA TARJETA */}
       {resultadoBusqueda && resultadoBusqueda.info && (
-       <PlayerCard 
-        player={resultadoBusqueda.info}
-        padron={resultadoBusqueda.padron} // <--- NUEVA PROP
-        pagos2024={resultadoBusqueda.pagos2024}
-        pagos2025={resultadoBusqueda.pagos2025}
-        pases={resultadoBusqueda.pases} 
-        categorias={categoriasFinales} 
-      />
+        <PlayerCard 
+          player={resultadoBusqueda.info}
+          fichajes={resultadoBusqueda.fichajes} 
+          deudas={resultadoBusqueda.deudas} 
+          pases={resultadoBusqueda.pases} 
+          categorias={categoriasFinales} 
+        />
       )}
     </ScrollView>
   );

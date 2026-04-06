@@ -1,64 +1,77 @@
-import { db } from './firebaseConfig';
-import { doc, getDoc, collection, query, where, getDocs, DocumentData } from 'firebase/firestore';
+import { db } from './firebaseConfig'; 
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  DocumentSnapshot, 
+  QuerySnapshot, 
+  DocumentData 
+} from 'firebase/firestore';
 
 export const buscarJugadorCompleto = async (dniUsuario: string | number) => {
   try {
-    // 1. Limpieza absoluta del DNI
-    const dniLimpio = String(dniUsuario).replace(/\D/g, "");
+    // 1. Limpiamos el DNI de cualquier cosa que no sea número
+    const dniLimpio = String(dniUsuario).trim().replace(/\D/g, "");
     if (!dniLimpio) return null;
 
-    // 2. Consultas en paralelo
-    const [snap2024, snap2025, snapMaster, snapPases] = await Promise.all([
+    // 2. Creamos la versión con puntos (ej: 56.739.796) para la carpeta 'players'
+    const dniConPuntos = dniLimpio.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+    // 3. Buscamos en todas las colecciones al mismo tiempo
+    const [snapMasterLimpio, snapMasterPuntos, snap2024, snap2025, snapDeudas, snapPases] = await Promise.all([
+      getDoc(doc(db, 'players', dniLimpio)),      // Intento sin puntos
+      getDoc(doc(db, 'players', dniConPuntos)),   // Intento con puntos (como están tus IDs)
       getDoc(doc(db, 'pagos_2024', dniLimpio)),
       getDoc(doc(db, 'pagos_2025', dniLimpio)),
-      getDoc(doc(db, 'players', dniLimpio)),
-      // Buscamos por el campo "dni" tal cual está en la colección de Firebase
+      getDoc(doc(db, 'deudas', dniLimpio)),       // En deudas los tenés sin puntos
       getDocs(query(collection(db, 'pases'), where("dni", "==", dniLimpio)))
     ]);
 
-    // 3. Procesar Pases (Caso: Lourdes Mariana Aguirre Frias)
-    const listaPases = snapPases.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
-
-    // Ordenar por AÑO descendente para que el primer pase sea el más reciente
-    listaPases.sort((a, b) => {
-      const anioA = Number(a["AÑO"]) || Number(a["anio"]) || 0;
-      const anioB = Number(b["AÑO"]) || Number(b["anio"]) || 0;
-      return anioB - anioA;
-    });
-
-  // 4. Determinar Info Final (NUEVA PRIORIDAD PARA JUGADORES LIBRES)
-    let infoFinal: any = null;
-    let padronOriginal: any = null;
-
-    // Guardamos SIEMPRE los datos del padrón si existen para el Club de Origen
-    if (snapMaster.exists()) {
-      padronOriginal = snapMaster.data();
-    }
+    // 4. Verificamos cuál de los dos intentos en 'players' funcionó
+    const snapMaster = snapMasterPuntos.exists() ? snapMasterPuntos : (snapMasterLimpio.exists() ? snapMasterLimpio : null);
     
-    // Prioridad para mostrar Nombres/Apellidos en la tarjeta
-    if (snap2025.exists()) {
-      infoFinal = snap2025.data();
-    } else if (snap2024.exists()) {
-      infoFinal = snap2024.data();
-    } else if (listaPases.length > 0) {
-      infoFinal = listaPases[0];
-    } else if (padronOriginal) {
-      infoFinal = padronOriginal; // <--- ESTO permite que aparezcan los LIBRES
+    if (!snapMaster) {
+      console.log("⚠️ No se encontró el documento en 'players' ni con puntos ni sin puntos.");
+      return null;
     }
 
-    // Si no está en ninguna colección, recién ahí es null
-    if (!infoFinal) return null;
-
-    return {
-      info: infoFinal,
-      padron: padronOriginal, // <--- MANDAMOS EL PADRÓN APARTE
-      pagos2024: snap2024.exists() ? snap2024.data() : null,
-      pagos2025: snap2025.exists() ? snap2025.data() : null,
-      pases: listaPases
-    };
+    return procesarResultado(snapMaster, snap2024, snap2025, snapDeudas, snapPases);
 
   } catch (error) {
-    console.error("Error en búsqueda:", error);
+    console.error("🔥 Error en playerService:", error);
     throw error;
   }
+};
+
+/**
+ * Procesa los datos de Firebase para devolver el objeto que espera el componente.
+ */
+const procesarResultado = (
+  snapMaster: DocumentSnapshot, 
+  snap2024: DocumentSnapshot, 
+  snap2025: DocumentSnapshot, 
+  snapDeudas: DocumentSnapshot, 
+  snapPases: QuerySnapshot
+) => {
+    const padronData = snapMaster.data();
+    const deudasData = snapDeudas.exists() ? snapDeudas.data() : null;
+    
+    return {
+      info: padronData,
+      padron: padronData,
+      fichajes: { 
+        fichado2024: snap2024.exists(), 
+        fichado2025: snap2025.exists() 
+      },
+      deudas: {
+        monto2024: Number(deudasData?.deuda_2024) || 0,
+        monto2025: Number(deudasData?.deuda_2025) || 0,
+      },
+      pases: snapPases.docs.map(d => ({ id: d.id, ...d.data() })),
+      pagos2024: snap2024.exists() ? snap2024.data() : null,
+      pagos2025: snap2025.exists() ? snap2025.data() : null,
+    };
 };
