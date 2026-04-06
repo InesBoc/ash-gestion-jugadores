@@ -17,23 +17,26 @@ const PlayerPasses = ({ pases }) => {
     <View style={styles.container}>
       <Text style={styles.title}>HISTORIAL DE PASES ASH</Text>
       {pases.map((pase, index) => {
-        // Mapeo flexible incluyendo la nueva columna de vencimiento
-        const clubOrig = pase.club_origen || pase["CLUB ORIGEN"] || "S/D";
-        const clubDest = pase.club_destino || pase["CLUB DESTINO"] || "S/D";
+        // --- AQUÍ DECLARAMOS TODO PARA QUE NO HAYA REFERENCE ERROR ---
+        const clubOrig = pase.club_origen || "S/D";
+        const clubDest = pase.club_destino || "S/D";
         
-        // Lógica de estado con prioridad al Vencimiento (Columna N)
-        let estadoPase = (pase.estado || pase.ESTADO || "PENDIENTE").toUpperCase();
-        const vencido = pase.vencido || pase["VENCIDO"] || pase.N; // Soporta columna N del Excel
+        let estadoFinal = (pase.estado || "PENDIENTE").toUpperCase();
+        
+        // Revisamos la columna 'vencido' (que viene de 'finalizados' del Excel)
+        const infoVencimiento = String(pase.vencido || "").toUpperCase();
+        const esInvalido = infoVencimiento.includes("NO FIGURA") || 
+                           infoVencimiento === "VENCIDO" || 
+                           infoVencimiento === "SI";
 
-        // Si la columna N indica vencimiento, sobreescribimos el estado
-        if (vencido === "VENCIDO" || vencido === "SI" || vencido === true) {
-          estadoPase = "VENCIDO";
+        if (esInvalido) {
+          estadoFinal = "VENCIDO";
         }
 
         return (
           <View key={index} style={styles.passCard}>
             <Text style={styles.date}>
-              📅 {formatearFechaExcel(pase.FECHA || pase["FECHA PASE"] || pase.fecha)}
+              📅 {formatearFechaExcel(pase.fecha_tramite || pase.fecha || pase.FECHA)}
             </Text>
             
             <View style={styles.row}>
@@ -43,17 +46,16 @@ const PlayerPasses = ({ pases }) => {
             </View>
 
             <Text style={styles.footer}>
-              Tipo: {pase.tipo_pase || pase["TIPO PASE"] || "Definitivo"} | Circular: {pase.circular || pase["CIRCULAR"] || "N/A"}
+              Tipo: {pase.tipo_pase || "Definitivo"} | Circular: {pase.circular || "N/A"}
             </Text>
             
             <Text style={[
               styles.status, 
-              estadoPase === 'FINALIZADO' || estadoPase === 'APROBADO' ? styles.statusFin :
-              estadoPase === 'VENCIDO' ? styles.statusVenc :
-              estadoPase === 'RECHAZADO' ? styles.statusRech :
+              estadoFinal === 'VENCIDO' ? styles.statusVenc : 
+              (estadoFinal === 'FINALIZADO' || estadoFinal === 'APROBADO') ? styles.statusFin : 
               styles.statusPend
             ]}>
-              Estado: {estadoPase}
+              Estado: {estadoFinal}
             </Text>
           </View>
         );
@@ -96,7 +98,7 @@ const styles = StyleSheet.create({
   statusFin: { color: '#2e7d32', backgroundColor: '#e8f5e9' },
   statusPend: { color: '#f5a623', backgroundColor: '#fff3e0' },
   statusRech: { color: '#c62828', backgroundColor: '#ffebee' },
-  statusVenc: { color: '#455a64', backgroundColor: '#eceff1' } // Gris azulado para vencidos
+  statusVenc: { color: '#455a64', backgroundColor: '#eceff1' }
 });
 
 export default PlayerPasses;

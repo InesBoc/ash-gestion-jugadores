@@ -22,13 +22,24 @@ const PlayerCard = ({ player, fichajes, deudas, pases, categorias }) => {
   // Es libre si no existe registro en las colecciones de pagos/fichaje de 2024 y 2025
   const esJugadorLibre = !fichajes?.fichado2024 && !fichajes?.fichado2025;
 
-  // 5. Lógica de Club Actual (Basada en Pases)
-  // Buscamos el último pase que esté FINALIZADO o APROBADO
-  const ultimoPaseValido = pases
-    ?.filter(p => p.estado === 'FINALIZADO' || p.estado === 'APROBADO')
-    .sort((a, b) => (Number(b.anio || 0) - Number(a.anio || 0)))[0];
-  
-  const clubActual = ultimoPaseValido ? ultimoPaseValido.club_destino : clubDeOrigenOficial;
+// ... dentro de tu componente PlayerCard ...
+
+// 5. Lógica de Club Actual (Basada en Pases no vencidos)
+const ultimoPaseValido = pases
+  ?.filter(p => {
+    // Convertimos a mayúsculas para comparar seguro
+    const estado = (p.estado || "").toUpperCase();
+    
+    // Verificamos si en la base de datos el campo 'vencido' tiene datos
+    const isVencido = p.vencido === "VENCIDO" || p.vencido === "SI" || p.vencido === true;
+    
+    // REGLA: Debe estar Aprobado/Finalizado Y NO estar vencido
+    return (estado === 'FINALIZADO' || estado === 'APROBADO') && !isVencido;
+  })
+  .sort((a, b) => (Number(b.anio || 0) - Number(a.anio || 0)))[0];
+
+const clubActual = ultimoPaseValido ? ultimoPaseValido.club_destino : clubDeOrigenOficial;
+
 
   return (
     <View style={styles.card}>
