@@ -6,13 +6,10 @@ const PlayerPasses = ({ pases }) => {
 
   const formatearFechaExcel = (fechaRaw) => {
     if (!fechaRaw) return "S/D";
-    
-    // Si es un número de Excel (ej: 44235 como el de Daniela Aguilar)
     if (!isNaN(fechaRaw) && typeof fechaRaw !== 'object') {
       const fecha = new Date((fechaRaw - 25569) * 86400 * 1000);
       return fecha.toLocaleDateString('es-AR');
     }
-    
     return String(fechaRaw);
   };
 
@@ -20,10 +17,18 @@ const PlayerPasses = ({ pases }) => {
     <View style={styles.container}>
       <Text style={styles.title}>HISTORIAL DE PASES ASH</Text>
       {pases.map((pase, index) => {
-        // Mapeo flexible para las columnas del Excel
+        // Mapeo flexible incluyendo la nueva columna de vencimiento
         const clubOrig = pase.club_origen || pase["CLUB ORIGEN"] || "S/D";
         const clubDest = pase.club_destino || pase["CLUB DESTINO"] || "S/D";
-        const estadoPase = pase.estado || pase.ESTADO || "PENDIENTE";
+        
+        // Lógica de estado con prioridad al Vencimiento (Columna N)
+        let estadoPase = (pase.estado || pase.ESTADO || "PENDIENTE").toUpperCase();
+        const vencido = pase.vencido || pase["VENCIDO"] || pase.N; // Soporta columna N del Excel
+
+        // Si la columna N indica vencimiento, sobreescribimos el estado
+        if (vencido === "VENCIDO" || vencido === "SI" || vencido === true) {
+          estadoPase = "VENCIDO";
+        }
 
         return (
           <View key={index} style={styles.passCard}>
@@ -43,9 +48,10 @@ const PlayerPasses = ({ pases }) => {
             
             <Text style={[
               styles.status, 
-              estadoPase.toUpperCase() === 'FINALIZADO' || estadoPase.toUpperCase() === 'APROBADO' 
-                ? styles.statusFin 
-                : styles.statusPend
+              estadoPase === 'FINALIZADO' || estadoPase === 'APROBADO' ? styles.statusFin :
+              estadoPase === 'VENCIDO' ? styles.statusVenc :
+              estadoPase === 'RECHAZADO' ? styles.statusRech :
+              styles.statusPend
             ]}>
               Estado: {estadoPase}
             </Text>
@@ -65,7 +71,7 @@ const styles = StyleSheet.create({
     borderRadius: 10, 
     marginBottom: 10,
     borderLeftWidth: 5,
-    borderLeftColor: '#f50909', // Rojo ASH
+    borderLeftColor: '#f50909',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -88,7 +94,9 @@ const styles = StyleSheet.create({
     borderRadius: 4
   },
   statusFin: { color: '#2e7d32', backgroundColor: '#e8f5e9' },
-  statusPend: { color: '#f5a623', backgroundColor: '#fff3e0' }
+  statusPend: { color: '#f5a623', backgroundColor: '#fff3e0' },
+  statusRech: { color: '#c62828', backgroundColor: '#ffebee' },
+  statusVenc: { color: '#455a64', backgroundColor: '#eceff1' } // Gris azulado para vencidos
 });
 
 export default PlayerPasses;
