@@ -1,61 +1,40 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
+// ... dentro de PlayerPasses ...
 const PlayerPasses = ({ pases }) => {
   if (!pases || pases.length === 0) return null;
 
-  const formatearFechaExcel = (fechaRaw) => {
-    if (!fechaRaw) return "S/D";
-    if (!isNaN(fechaRaw) && typeof fechaRaw !== 'object') {
-      const fecha = new Date((fechaRaw - 25569) * 86400 * 1000);
-      return fecha.toLocaleDateString('es-AR');
-    }
-    return String(fechaRaw);
-  };
+  // 1. ORDENAR: El más reciente (anio) arriba
+  const pasesOrdenados = [...pases].sort((a, b) => {
+    return (Number(b.anio) || 0) - (Number(a.anio) || 0);
+  });
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>HISTORIAL DE PASES ASH</Text>
-      {pases.map((pase, index) => {
-        // --- AQUÍ DECLARAMOS TODO PARA QUE NO HAYA REFERENCE ERROR ---
-        const clubOrig = pase.club_origen || "S/D";
-        const clubDest = pase.club_destino || "S/D";
+      {pasesOrdenados.map((pase, index) => {
+        // 2. LÓGICA DE PRIORIDAD PARA EL ESTADO
+        let estadoMostrar = (pase.estado || "PENDIENTE").toUpperCase();
+        const infoVencido = (pase.vencido || "").toUpperCase();
         
-        let estadoFinal = (pase.estado || "PENDIENTE").toUpperCase();
-        
-        // Revisamos la columna 'vencido' (que viene de 'finalizados' del Excel)
-        const infoVencimiento = String(pase.vencido || "").toUpperCase();
-        const esInvalido = infoVencimiento.includes("NO FIGURA") || 
-                           infoVencimiento === "VENCIDO" || 
-                           infoVencimiento === "SI";
-
-        if (esInvalido) {
-          estadoFinal = "VENCIDO";
-        }
+        // Si la columna N tiene texto (ej: "No figura en circular"), eso manda
+        const tieneNotaEspecial = infoVencido.length > 2; 
 
         return (
           <View key={index} style={styles.passCard}>
-            <Text style={styles.date}>
-              📅 {formatearFechaExcel(pase.fecha_tramite || pase.fecha || pase.FECHA)}
-            </Text>
-            
+            <Text style={styles.date}>📅 {pase.anio || "S/D"}</Text>
             <View style={styles.row}>
-              <Text style={styles.club}>{clubOrig}</Text>
+              <Text style={styles.club}>{pase.club_origen}</Text>
               <Text style={styles.arrow}> ➔ </Text>
-              <Text style={[styles.club, styles.dest]}>{clubDest}</Text>
+              <Text style={[styles.club, {fontWeight: 'bold'}]}>{pase.club_destino}</Text>
             </View>
-
-            <Text style={styles.footer}>
-              Tipo: {pase.tipo_pase || "Definitivo"} | Circular: {pase.circular || "N/A"}
-            </Text>
-            
             <Text style={[
               styles.status, 
-              estadoFinal === 'VENCIDO' ? styles.statusVenc : 
-              (estadoFinal === 'FINALIZADO' || estadoFinal === 'APROBADO') ? styles.statusFin : 
-              styles.statusPend
+              tieneNotaEspecial ? styles.statusVenc : 
+              estadoMostrar === 'FINALIZADO' ? styles.statusFin : styles.statusPend
             ]}>
-              Estado: {estadoFinal}
+              ESTADO: {tieneNotaEspecial ? infoVencido : estadoMostrar}
             </Text>
           </View>
         );
